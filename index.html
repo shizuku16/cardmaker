@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script type="text/javascript" src="sha256.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        function loadImage(obj){
+            document.getElementById('preview').innerHTML = '<p>プレビュー</p>';
+            for (i = 0; i < obj.files.length; i++) {
+                var fileReader = new FileReader();
+                fileReader.onload = (function (e) {
+                    document.getElementById('preview').innerHTML += '<img src="' + e.target.result + '">';
+                
+                });
+                fileReader.readAsDataURL(obj.files[i]);
+            }
+                console.log(document.getElementById('preview'))
+        }
+
+        async function load() {
+            if(document.form1.image.files[0]){
+            var img=document.form1.image.files
+            var hashfile=[]
+            for(var num=0;num<img.length;num++){
+                await img[num].arrayBuffer().then((arraybuffer) => {
+                    const sha = new jsSHA("SHA-256", 'ARRAYBUFFER');
+                    sha.update(arraybuffer);
+                    const hash = sha.getHash("HEX");
+                    return hash
+                })
+                .then((hash)=>{
+                    hashfile.push(hash)
+                })
+            }
+            yomikomi(hashfile)
+        }else{}
+        }
+
+        function yomikomi(img){
+            var writeString="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<card-stack location.name=\"table\" location.x=\"825\" location.y=\"300\" posZ=\"0\" isLock=\"false\" rotate=\"0\" zindex=\"15\" owner=\"\" isShowTotal=\"true\" overViewWidth=\"250\" overViewMaxHeight=\"250\">\n<data name=\"card-stack\">\n    <data name=\"image\">\n      <data type=\"image\" name=\"imageIdentifier\"></data>\n    </data>\n    <data name=\"common\">\n      <data name=\"name\">山札</data>\n    </data>\n    <data name=\"detail\"></data>\n    <data name=\"buff\"></data>\n  </data>\n  <node name=\"cardRoot\">"
+                for(var n=0;n<img.length;n++){
+                    writeString+="<card location.name=\"table\" location.x=\"825\" location.y=\"300\" posZ=\"0\" isLock=\"false\" dispLockMark=\"true\" state=\"1\" rotate=\"0\" owner=\"\" zindex=\"0\" overViewWidth=\"250\" overViewMaxHeight=\"250\">\n  <data name=\"card\">\n    <data name=\"image\">\n      <data type=\"image\" name=\"imageIdentifier\"></data>\n      <data type=\"image\" name=\"front\">"+img[n]+"</data>\n      <data type=\"image\" name=\"back\">./assets/images/trump/z02.gif</data>\n    </data>\n    <data name=\"common\">\n      <data name=\"name\">カード</data>\n      <data name=\"size\">2</data>\n    </data>\n    <data name=\"detail\"></data>\n    <data name=\"buff\"></data>\n  </data>\n</card>"
+                }
+                writeString+="</node>\n</card-stack>"
+                download([writeString,"カードリスト"])
+        }
+
+        function download(date){
+            var zip = new JSZip();
+            var image=document.form1.image.files
+            zip.file("test.xml", date[0]);
+            for(var filenum=0;filenum<image.length;filenum++)
+                zip.file(image[filenum].name,image[filenum])
+            zip.generateAsync({type:'blob'})
+            .then(function(content) {
+                    //ダウンロード用にリンクを作成する
+                    const download = document.createElement('a');
+                    //リンク先に上記で生成したURLを指定する
+                    download.href = URL.createObjectURL(content);
+                    //download属性にファイル名を指定する
+                    download.download = date[1]+'.zip';
+                    //作成したリンクをクリックしてダウンロードを実行する
+                    download.click();
+                    //createObjectURLで作成したオブジェクトURLを開放する
+                    (window.URL || window.webkitURL).revokeObjectURL(url);})
+        }  
+    </script>
+    <style>
+    #preview img {
+        width:100px;
+        border:1px solid #cccccc;
+        }
+</style>
+</head>
+<body>
+    <form name="form1">
+        トランプの表面にする画像をすべて選択してください。<br>
+    <input type="file" multiple name="image" onchange="loadImage(this)"><br><br>
+    <input type="button" onclick="load()" value="ダウンロード">
+    <p id="preview"></p>
+    </form>
+</body>
+</html>
